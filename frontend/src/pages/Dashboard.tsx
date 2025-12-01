@@ -13,9 +13,10 @@ import {
 import { dashboardAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StatsCard from '../components/StatsCard';
-import RecentDetections from '../components/RecentDetections';
-import DetectionChart from '../components/DetectionChart';
-import SystemHealth from '../components/SystemHealth';
+import RecentDetections from './RecentDetections';
+import DetectionChart from './DetectionChart';
+import SystemHealth  from './SystemHealth';
+
 
 /**
  * Main Dashboard component

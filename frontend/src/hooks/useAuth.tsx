@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { api, authAPI } from '../services/api'; // IMPORT authAPI
 import toast from 'react-hot-toast';
 
 // Types for authentication
@@ -44,17 +44,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       try {
         const token = localStorage.getItem('access_token');
-        if (token) {
+        const userDataStr = localStorage.getItem('user_data');
+        
+        if (token && userDataStr) {
           // Set token in API client
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
-          // Verify token and get user info
-          const response = await api.get('/auth/me');
-          setUser(response.data);
+          // Use the stored user data
+          const userData = JSON.parse(userDataStr);
+          setUser(userData);
         }
       } catch (error) {
-        // Token is invalid, remove it
+        console.warn('Auth initialization failed, clearing token:', error);
         localStorage.removeItem('access_token');
+        localStorage.removeItem('user_data');
         delete api.defaults.headers.common['Authorization'];
       } finally {
         setIsLoading(false);
@@ -73,31 +76,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Create form data for OAuth2 password flow
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('password', password);
+      // Use the actual API instead of hardcoded logic
+      const result = await authAPI.login(username, password);
       
-      const response = await api.post('/auth/login', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
+      // Store token and user data from API response
+      localStorage.setItem('access_token', result.access_token);
+      localStorage.setItem('user_data', JSON.stringify(result.user));
       
-      const { access_token } = response.data;
+      // Set API headers
+      api.defaults.headers.common['Authorization'] = `Bearer ${result.access_token}`;
       
-      // Store token
-      localStorage.setItem('access_token', access_token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      
-      // Get user info
-      const userResponse = await api.get('/auth/me');
-      setUser(userResponse.data);
+      // Update state with the user from API response
+      setUser(result.user);
       
       toast.success('Login successful!');
+      return;
       
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Login failed';
+      const message = error.message || 'Login failed. Please try again.';
       toast.error(message);
       throw error;
     } finally {
@@ -110,16 +106,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const logout = () => {
     try {
-      // Call logout endpoint (optional)
-      api.post('/auth/logout').catch(() => {
-        // Ignore logout errors
-      });
-    } finally {
-      // Clear local state
+      // Clear local storage
       localStorage.removeItem('access_token');
+      localStorage.removeItem('user_data');
+      
+      // Clear API headers
       delete api.defaults.headers.common['Authorization'];
+      
+      // Clear state
       setUser(null);
+      
       toast.success('Logged out successfully');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Logout failed');
     }
   };
 
@@ -129,7 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const updateUser = (userData: Partial<User>) => {
     if (user) {
-      setUser({ ...user, ...userData });
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem('user_data', JSON.stringify(updatedUser));
     }
   };
 
@@ -159,26 +161,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
-
-/**
- * Hook to check if user has required permission
- * @param requiredRole - Required role level
- * @returns True if user has permission
- */
-export function usePermission(requiredRole: 'admin' | 'operator' | 'viewer') {
-  const { user } = useAuth();
-  
-  if (!user) return false;
-  
-  const roleHierarchy = {
-    admin: 3,
-    operator: 2,
-    viewer: 1,
-  };
-  
-  const userLevel = roleHierarchy[user.role];
-  const requiredLevel = roleHierarchy[requiredRole];
-  
-  return userLevel >= requiredLevel;
 }

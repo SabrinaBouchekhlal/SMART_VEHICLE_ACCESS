@@ -1,4 +1,5 @@
 # Smart Vehicle License Scanner - Python Dependencies
+
 # Core Framework and API
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
@@ -8,22 +9,23 @@ pydantic-settings==2.1.0
 # Database and ORM
 sqlalchemy==2.0.23
 alembic==1.13.1
-psycopg2-binary==2.9.9
-asyncpg==0.29.0
+psycopg2-binary==2.9.11
+asyncpg==0.30.0               # bumped to 0.30.0
 
 # Image Processing and Computer Vision
 opencv-python==4.8.1.78
 opencv-contrib-python==4.8.1.78
-pillow==10.1.0
+pillow==10.4.0                # keep 10.4.0 for now
 numpy==1.24.3
 scipy==1.11.4
 
 # Machine Learning and Deep Learning
-torch==2.1.1
+# torch and torchvision are optional / risky on Python 3.13 Windows
+torch==2.1.1                  # you may need nightly or source build
 torchvision==0.16.1
-ultralytics==8.0.196  # YOLOv8
+ultralytics==8.0.196
 onnxruntime==1.16.3
-tensorrt==8.6.1  # Optional: for NVIDIA GPU acceleration
+tensorrt==8.6.1               # optional, if your GPU supports it
 
 # OCR and Text Recognition
 paddlepaddle==2.5.2
@@ -53,7 +55,7 @@ nats-py==2.3.0
 
 # Data Processing and Analysis
 pandas==2.1.4
-openpyxl==3.1.2  # For Excel export
+openpyxl==3.1.2
 python-dateutil==2.8.2
 
 # Monitoring and Logging
